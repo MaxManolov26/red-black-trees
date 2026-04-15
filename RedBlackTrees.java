@@ -1,5 +1,3 @@
-package redblacktrees;
-
 import java.util.Objects;
 
 public final class RedBlackTrees {
