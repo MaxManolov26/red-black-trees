@@ -1,5 +1,7 @@
 package redblacktrees;
 
+import java.util.Objects;
+
 public final class RedBlackTrees {
     private RedBlackTrees() {
     }
@@ -49,6 +51,29 @@ public final class RedBlackTrees {
 
         public boolean isEmpty() {
             return size == 0;
+        }
+
+        public boolean containsKey(K key) {
+            return !findNode(key).isNil();
+        }
+
+        public V get(K key) {
+            Node locatedNode = findNode(key);
+            return locatedNode.isNil() ? null : locatedNode.value;
+        }
+
+        private Node findNode(K key) {
+            Objects.requireNonNull(key, "key");
+
+            Node current = root;
+            while (!current.isNil()) {
+                int comparison = key.compareTo(current.key);
+                if (comparison == 0) {
+                    return current;
+                }
+                current = comparison < 0 ? current.left : current.right;
+            }
+            return nil;
         }
     }
 }
