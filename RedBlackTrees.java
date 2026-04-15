@@ -1,5 +1,3 @@
-import java.util.Objects;
-
 public final class RedBlackTrees {
     private RedBlackTrees() {
     }
@@ -61,7 +59,9 @@ public final class RedBlackTrees {
         }
 
         private Node findNode(K key) {
-            Objects.requireNonNull(key, "key");
+            if (key == null) {
+                throw new NullPointerException("key");
+            }
 
             Node current = root;
             while (!current.isNil()) {
