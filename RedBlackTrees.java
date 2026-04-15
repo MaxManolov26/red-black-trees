@@ -14,8 +14,8 @@ public final class RedBlackTrees {
         Minimal red-black tree skeleton keyed by comparable values.
 
         This version only models the tree structure and supports read-only lookup methods.
-        Mutation logic is intentionally absent for now, but the node layout already matches the
-        standard red-black tree representation built around a shared black sentinel node.
+        Mutation logic is intentionally absent for now, and empty child or parent references are
+        represented with {@code null}.
 
         @param <K> key type used to order nodes in the tree
         @param <V> value type stored alongside each key
@@ -35,9 +35,8 @@ public final class RedBlackTrees {
         /**
             Single node within the tree.
 
-            Real nodes carry a key, a value, links to both children, a link to the parent,
-            and a color. The same class also represents the shared sentinel node referenced by
-            {@code nil}; for that sentinel, the key and value fields remain unused.
+            Each node carries a key, a value, links to both children, a link to the parent,
+            and a color. Missing links are represented with {@code null}.
         */
         private final class Node {
             K key;
@@ -48,10 +47,10 @@ public final class RedBlackTrees {
             NodeColor color;
 
             /**
-                Creates either a real tree node or the shared sentinel node.
+                Creates a tree node.
 
-                @param key key stored in the node, or {@code null} for the sentinel
-                @param value value stored in the node, or {@code null} for the sentinel
+                @param key key stored in the node
+                @param value value stored in the node
                 @param color color assigned to the node
             */
             Node(K key, V value, NodeColor color) {
@@ -59,29 +58,12 @@ public final class RedBlackTrees {
                 this.value = value;
                 this.color = color;
             }
-
-            /**
-                Reports whether this node is the shared sentinel.
-
-                @return {@code true} when this node is {@code nil}; otherwise {@code false}
-            */
-            boolean isNil() {
-                return this == nil;
-            }
         }
-
-        /**
-            Shared black sentinel used instead of {@code null} child references.
-
-            Using a sentinel removes many special cases from tree algorithms because every child
-            pointer always refers to a node object.
-        */
-        private final Node nil;
 
         /**
             Root of the tree.
 
-            When the tree is empty, the root is the {@code nil} sentinel rather than {@code null}.
+            When the tree is empty, the root is {@code null}.
         */
         private Node root;
 
@@ -91,18 +73,10 @@ public final class RedBlackTrees {
         private int size;
 
         /**
-            Creates an empty tree with a self-linked black sentinel node.
-
-            The sentinel points to itself for its parent and both children so internal traversal
-            code can rely on stable non-null references.
+            Creates an empty tree.
         */
         public RedBlackTree() {
-            nil = new Node(null, null, NodeColor.BLACK);
-            nil.left = nil;
-            nil.right = nil;
-            nil.parent = nil;
-
-            root = nil;
+            root = null;
             size = 0;
         }
 
@@ -133,7 +107,7 @@ public final class RedBlackTrees {
             @return {@code true} when the key is present; otherwise {@code false}
         */
         public boolean containsKey(K key) {
-            return !findNode(key).isNil();
+            return findNode(key) != null;
         }
 
         /**
@@ -144,17 +118,16 @@ public final class RedBlackTrees {
         */
         public V get(K key) {
             Node locatedNode = findNode(key);
-            return locatedNode.isNil() ? null : locatedNode.value;
+            return locatedNode == null ? null : locatedNode.value;
         }
 
         /**
             Walks the binary-search-tree path for a key and returns the matching node when found.
 
-            A missing key yields the shared sentinel, which lets callers test for absence without
-            dealing with {@code null} node references.
+            A missing key yields {@code null}.
 
             @param key key to search for
-            @return matching node, or {@code nil} when the key does not exist
+            @return matching node, or {@code null} when the key does not exist
             @throws NullPointerException when {@code key} is {@code null}
         */
         private Node findNode(K key) {
@@ -163,14 +136,14 @@ public final class RedBlackTrees {
             }
 
             Node current = root;
-            while (!current.isNil()) {
+            while (current != null) {
                 int comparison = key.compareTo(current.key);
                 if (comparison == 0) {
                     return current;
                 }
                 current = comparison < 0 ? current.left : current.right;
             }
-            return nil;
+            return null;
         }
     }
 }
