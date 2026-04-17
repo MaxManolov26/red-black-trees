@@ -105,7 +105,7 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
         @return {@code true} when the key is present; otherwise {@code false}
     */
     public boolean containsKey(K key) {
-        return findNode(key) != null;
+        return findNode(key) != NIL;
     }
 
     /**
@@ -116,7 +116,54 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
     */
     public V get(K key) {
         Node locatedNode = findNode(key);
-        return locatedNode == null ? null : locatedNode.value;
+        return locatedNode == NIL ? null : locatedNode.value;
+    }
+
+    /**
+        Inserts a key-value pair into the tree.
+
+        The binary-search-tree placement is handled here. Rebalancing is delegated to the
+        separately maintained {@code insertFixup} method, which is expected to use the
+        rotation helpers Max make.
+
+        @param key key to insert
+        @param value value to associate with the key
+        @throws NullPointerException when {@code key} is {@code null}
+    */
+    public void insert(K key, V value) {
+        if (key == null) {
+            throw new NullPointerException("key cannot be null");
+        }
+
+        Node parent = NIL;
+        Node current = root;
+
+        while (current != NIL) {
+            parent = current;
+            int comparison = key.compareTo(current.key);
+            if (comparison == 0) {
+                current.value = value;
+                return;
+            }
+            current = comparison < 0 ? current.left : current.right;
+        }
+
+        // new nodes are always red, and their children are the black NIL sentinel
+        Node insertedNode = new Node(key, value, NodeColor.RED);
+        insertedNode.left = NIL;
+        insertedNode.right = NIL;
+        insertedNode.parent = parent;
+
+        if (parent == NIL) {
+            root = insertedNode;
+        } else if (key.compareTo(parent.key) < 0) {
+            parent.left = insertedNode;
+        } else {
+            parent.right = insertedNode;
+        }
+
+        size++;
+        insertFixup(insertedNode);
     }
 
     /**
@@ -130,7 +177,7 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
     */
     private Node findNode(K key) {
         if (key == null) {
-            throw new NullPointerException("key");
+            throw new NullPointerException("key cannot be null");
         }
 
         Node current = root;
@@ -142,5 +189,10 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
             current = comparison < 0 ? current.left : current.right;
         }
         return NIL;
+    }
+
+    // this will implement rotateLeft and rotateRight
+    private void insertFixup(Node insertedNode) {
+        throw new UnsupportedOperationException("insertFixup is implemented by MAX");
     }
 }
