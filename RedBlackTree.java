@@ -3,7 +3,7 @@
 
     This version only models the tree structure and supports read-only lookup methods.
     Mutation logic is intentionally absent for now, and empty child or parent references are
-    represented with {@code null}.
+    represented with a shared black {@code NIL} sentinel.
 
     @param <K> key type used to order nodes in the tree
     @param <V> value type stored alongside each key
@@ -24,7 +24,7 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
         Single node within the tree.
 
         Each node carries a key, a value, links to both children, a link to the parent,
-        and a color. Missing links are represented with {@code null}.
+        and a color. Missing links point to the shared {@code NIL} sentinel.
     */
     private final class Node {
         K key;
@@ -49,9 +49,14 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
     }
 
     /**
+        Shared black sentinel used for all missing links.
+    */
+    private final Node NIL;
+
+    /**
         Root of the tree.
 
-        When the tree is empty, the root is {@code null}.
+        When the tree is empty, the root is {@code NIL}.
     */
     private Node root;
 
@@ -64,7 +69,12 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
         Creates an empty tree.
     */
     public RedBlackTree() {
-        root = null;
+        NIL = new Node(null, null, NodeColor.BLACK);
+        NIL.left = NIL;
+        NIL.right = NIL;
+        NIL.parent = NIL;
+
+        root = NIL;
         size = 0;
     }
 
@@ -124,13 +134,13 @@ public final class RedBlackTree<K extends Comparable<K>, V> {
         }
 
         Node current = root;
-        while (current != null) {
+        while (current != NIL) {
             int comparison = key.compareTo(current.key);
             if (comparison == 0) {
                 return current;
             }
             current = comparison < 0 ? current.left : current.right;
         }
-        return null;
+        return NIL;
     }
 }
