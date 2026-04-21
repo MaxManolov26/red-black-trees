@@ -4,7 +4,7 @@
 This is our Java implementation of a red-black tree. We really tried to make it correct, readable, and easy
 to follow.
 
-Our tree acts like a standalone ordered map:
+Our tree acts like a small ordered map:
 - it stores key-value pairs
 - it keeps keys in sorted order
 - it supports search, insertion, and deletion in `O(log n)` worst-case time
@@ -18,32 +18,27 @@ deletion fix-up logic consistent.
 - `RedBlackTreeTester.java`: a simple demo runner that shows the tree working in a few clear scenarios
 
 ## What The Tree Can Do
-- Natural ordering with the default constructor
-- Custom ordering with the comparator constructor
-- Lookup helpers:
-  - `containsKey`
-  - `containsValue`
-  - `get`
-  - `getOrDefault`
-- Update helpers:
-  - `put`
-  - `putIfAbsent`
-  - `replace`
-  - `remove`
-  - `remove(key, value)`
-  - `putAll`
+The public API is intentionally small. The focus of this project is the
+balancing algorithm, not a full ordered-map surface.
+
+- Construction:
+  - `RedBlackTree()` for natural ordering
+  - `RedBlackTree(Comparator)` for custom ordering
+- Size and state:
+  - `size`
+  - `isEmpty`
   - `clear`
-- Ordered navigation:
-  - `firstKey`, `lastKey`
-  - `firstEntry`, `lastEntry`
-  - `lowerKey`, `floorKey`, `ceilingKey`, `higherKey`
-  - `lowerEntry`, `floorEntry`, `ceilingEntry`, `higherEntry`
-- Snapshot views:
-  - `keysInOrder`
-  - `valuesInKeyOrder`
-  - `entriesInOrder`
-- Internal correctness check:
-  - `validateInvariants`
+- Lookup:
+  - `containsKey`
+  - `get`
+- Mutation:
+  - `put`
+  - `remove`
+- Inspection:
+  - `toString` prints the tree in ascending key order
+
+All balancing and search machinery (rotations, insertion and deletion fix-ups,
+sentinel wiring, key validation) is private.
 
 ## Ordering
 The tree supports two ways to order keys:
@@ -54,9 +49,6 @@ The tree supports two ways to order keys:
 2. Comparator ordering  
    A custom `Comparator` can be passed into the constructor, which means the key
    type does not have to be naturally comparable on its own.
-
-The `comparator()` method returns the active comparator. If it returns `null`,
-that means the tree is using natural ordering.
 
 We also made key compatibility checks happen up front, so if someone passes in a
 bad key type, the error message is clearer and happens immediately.
@@ -71,10 +63,6 @@ That means `get(key)` returning `null` can mean one of two things:
 
 So if that distinction matters, `containsKey(key)` should be checked too.
 
-For boundary methods:
-- `firstKey()` and `lastKey()` throw `NoSuchElementException` when the tree is empty
-- `firstEntry()` and `lastEntry()` return `null` when the tree is empty
-
 ## Red-Black Tree Rules We Enforce
 Our implementation preserves the standard red-black tree properties:
 
@@ -84,17 +72,14 @@ Our implementation preserves the standard red-black tree properties:
 4. Every path from a node to a descendant sentinel leaf has the same number of black nodes.
 5. All sentinel leaves are black.
 
-The `validateInvariants()` method checks these rules, along with parent links,
-ordering, and size consistency.
-
 ## Demo / Tester
 `RedBlackTreeTester` is intentionally simple. Instead of using random data or a
 large assertion framework, it prints a few readable examples:
 
 - empty-tree behavior
-- basic insert, update, lookup, and remove operations
-- navigation helpers
-- bulk loading and clearing
+- basic insert, update, and lookup
+- deletion against a pre-populated tree
+- clearing a populated tree
 - custom comparator ordering
 - invalid key examples
 
@@ -105,11 +90,9 @@ what the tree does without digging through a lot of test slop.
 - Search: `O(log n)`
 - Insert: `O(log n)`
 - Remove: `O(log n)`
-- `putIfAbsent`: `O(log n)` with one search traversal
-- Navigation queries: `O(log n)`
-- Snapshot traversals: `O(n)`
+- `toString`: `O(n)`
 
 ## Design Notes
-- We kept the class standalone instead of tying it into the full Java collections framework.
-- We used snapshot helpers like `keysInOrder()` and `entriesInOrder()` because they make the tree easy to inspect.
+- We kept the public API intentionally minimal so the balancing code is the main focus.
+- The class is standalone and does not plug into the Java collections framework.
 - We added inline explanations in the code around rotations and fix-up cases because that is the hardest part of a red-black tree to read.
