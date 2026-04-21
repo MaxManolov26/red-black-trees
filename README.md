@@ -1,4 +1,4 @@
-# Red-Black Trees (Java Implementation)
+# Red-Black Trees in Java
 
 ## Overview
 This is our Java implementation of a red-black tree. We really tried to make it correct, readable, and easy
