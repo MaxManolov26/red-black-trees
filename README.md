@@ -1,8 +1,7 @@
 # Red-Black Trees (Java Implementation)
 
 ## Overview
-This project is our Java implementation of a red-black tree. We wanted it to be
-more than just “it works,” so we tried to make it correct, readable, and easy
+This project is our Java implementation of a red-black tree. We really tried to make it correct, readable, and easy
 to follow.
 
 Our tree acts like a standalone ordered map:
