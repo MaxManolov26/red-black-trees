@@ -1,97 +1,124 @@
 # Red-Black Trees (Java Implementation)
 
 ## Overview
-This project implements a Red-Black Tree in Java. A Red-Black Tree is a self-balancing binary search tree that maintains logarithmic height through enforced coloring rules and rotations after insertions.
+This project is our Java implementation of a red-black tree. We wanted it to be
+more than just “it works,” so we tried to make it correct, readable, and easy
+to follow.
 
-The implementation supports insertion using key–value pairs and uses a NIL sentinel node instead of null references to simplify tree operations.
+Our tree acts like a standalone ordered map:
+- it stores key-value pairs
+- it keeps keys in sorted order
+- it supports search, insertion, and deletion in `O(log n)` worst-case time
 
----
+We used a shared black sentinel leaf instead of `null` child references. That
+made the balancing code much cleaner and helped us keep the insertion and
+deletion fix-up logic consistent.
 
-## Features
-- Generic key–value storage (map-like structure)
-- Binary Search Tree insertion logic
-- Self-balancing using Red-Black Tree rules
-- NIL sentinel node (black leaf representation)
-- Automatic rebalancing via insert fix-up
-- Tree size tracking
-- Duplicate key update (overwrites existing value)
+## Files
+- `RedBlackTree.java`: the main red-black tree implementation
+- `RedBlackTreeTester.java`: a simple demo runner that shows the tree working in a few clear scenarios
 
----
+## What The Tree Can Do
+- Natural ordering with the default constructor
+- Custom ordering with the comparator constructor
+- Lookup helpers:
+  - `containsKey`
+  - `containsValue`
+  - `get`
+  - `getOrDefault`
+- Update helpers:
+  - `put`
+  - `putIfAbsent`
+  - `replace`
+  - `remove`
+  - `remove(key, value)`
+  - `putAll`
+  - `clear`
+- Ordered navigation:
+  - `firstKey`, `lastKey`
+  - `firstEntry`, `lastEntry`
+  - `lowerKey`, `floorKey`, `ceilingKey`, `higherKey`
+  - `lowerEntry`, `floorEntry`, `ceilingEntry`, `higherEntry`
+- Snapshot views:
+  - `keysInOrder`
+  - `valuesInKeyOrder`
+  - `entriesInOrder`
+- Internal correctness check:
+  - `validateInvariants`
 
-## Red-Black Tree Properties Enforced
-1. Every node is either red or black  
-2. The root is always black  
-3. No red node has a red child  
-4. Every path from a node to its descendant NIL nodes has the same number of black nodes  
-5. All NIL leaves are black  
+## Ordering
+The tree supports two ways to order keys:
 
----
+1. Natural ordering  
+   The keys must implement `Comparable`.
 
-## Core Design
+2. Comparator ordering  
+   A custom `Comparator` can be passed into the constructor, which means the key
+   type does not have to be naturally comparable on its own.
 
-### NIL Sentinel
-- A single shared node represents all leaf children
-- Replaces `null` references
-- Always colored black
-- Simplifies edge-case handling in insertion and balancing
+The `comparator()` method returns the active comparator. If it returns `null`,
+that means the tree is using natural ordering.
 
----
+We also made key compatibility checks happen up front, so if someone passes in a
+bad key type, the error message is clearer and happens immediately.
 
-### Node Structure
-Each node stores:
-- `key`
-- `value`
-- `color` (red or black)
-- `left`, `right`, `parent` pointers
+## Null Behavior
+- `null` keys are not allowed
+- `null` values are allowed
 
----
+That means `get(key)` returning `null` can mean one of two things:
+- the key is not in the tree
+- the key is in the tree and is explicitly mapped to `null`
 
-## Insertion Process
+So if that distinction matters, `containsKey(key)` should be checked too.
 
-Insertion occurs in two phases:
+For boundary methods:
+- `firstKey()` and `lastKey()` throw `NoSuchElementException` when the tree is empty
+- `firstEntry()` and `lastEntry()` return `null` when the tree is empty
 
-### 1. BST Insert
-- Traverse tree using key comparisons
-- Insert new node at correct leaf position
-- If key already exists, update its value
+## Red-Black Tree Rules We Enforce
+Our implementation preserves the standard red-black tree properties:
 
-### 2. Fix-Up Phase
-After insertion:
-- Node is colored red
-- `insertFixup` is called to restore Red-Black properties
-- Uses:
-  - recoloring
-  - left rotations
-  - right rotations
+1. Every node is either red or black.
+2. The root is always black.
+3. No red node has a red child.
+4. Every path from a node to a descendant sentinel leaf has the same number of black nodes.
+5. All sentinel leaves are black.
 
----
+The `validateInvariants()` method checks these rules, along with parent links,
+ordering, and size consistency.
+
+## Demo / Tester
+`RedBlackTreeTester` is intentionally simple. Instead of using random data or a
+large assertion framework, it prints a few readable examples:
+
+- empty-tree behavior
+- basic insert, update, lookup, and remove operations
+- navigation helpers
+- bulk loading and clearing
+- custom comparator ordering
+- invalid key examples
+
+We kept it simple on purpose so someone reading the project can run it and see
+what the tree does without digging through a lot of test infrastructure.
+
+## Build And Run
+If Java is installed, run:
+
+```bash
+javac -d out RedBlackTree.java RedBlackTreeTester.java
+java -cp out RedBlackTreeTester
+```
 
 ## Time Complexity
-- Search: O(log n)
-- Insert: O(log n)
-- Fix-up: O(log n)
+- Search: `O(log n)`
+- Insert: `O(log n)`
+- Remove: `O(log n)`
+- `putIfAbsent`: `O(log n)` with one search traversal
+- Navigation queries: `O(log n)`
+- Snapshot traversals: `O(n)`
 
----
-
-## Project Structure
-- `RedBlackTree` → main tree implementation
-- `Node` → internal node representation
-- `insertFixup` → rebalancing logic after insert
-- rotation helpers → structural adjustments
-
----
-
-## Notes
-- This implementation prioritizes correctness and clarity over optimization
-- NIL sentinel is used instead of null to simplify logic and enforce invariants
-- Only insertion is implemented; deletion can be added as an extension
-
----
-
-## Future Improvements
-- Implement deletion with fix-up cases
-- Add search and traversal methods
-- Add unit tests for rotation and balancing cases
-- Make implementation generic (`<K, V>` fully type-safe)
-
----
+## Design Notes
+- We kept the class standalone instead of tying it into the full Java collections framework.
+- We used snapshot helpers like `keysInOrder()` and `entriesInOrder()` because they make the tree easy to inspect.
+- We added inline explanations in the code around rotations and fix-up cases because that is the hardest part of a red-black tree to read.
