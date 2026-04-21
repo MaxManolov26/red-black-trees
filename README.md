@@ -1,7 +1,7 @@
 # Red-Black Trees (Java Implementation)
 
 ## Overview
-This project is our Java implementation of a red-black tree. We really tried to make it correct, readable, and easy
+This is our Java implementation of a red-black tree. We really tried to make it correct, readable, and easy
 to follow.
 
 Our tree acts like a standalone ordered map:
@@ -99,7 +99,7 @@ large assertion framework, it prints a few readable examples:
 - invalid key examples
 
 We kept it simple on purpose so someone reading the project can run it and see
-what the tree does without digging through a lot of test infrastructure.
+what the tree does without digging through a lot of test slop.
 
 ## Time Complexity
 - Search: `O(log n)`
