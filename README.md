@@ -101,14 +101,6 @@ large assertion framework, it prints a few readable examples:
 We kept it simple on purpose so someone reading the project can run it and see
 what the tree does without digging through a lot of test infrastructure.
 
-## Build And Run
-If Java is installed, run:
-
-```bash
-javac -d out RedBlackTree.java RedBlackTreeTester.java
-java -cp out RedBlackTreeTester
-```
-
 ## Time Complexity
 - Search: `O(log n)`
 - Insert: `O(log n)`
