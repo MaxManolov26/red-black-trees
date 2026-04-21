@@ -36,6 +36,11 @@ public final class RedBlackTreeTester {
       Demonstrates the behavior of a newly constructed tree.
      */
     private static void showEmptyTreeBehavior() {
+        // A freshly constructed tree should report size 0 and isEmpty true.
+        // Boundary queries that return null (firstEntry, lastEntry, getOrDefault)
+        // are safe to call on an empty tree. Queries that throw (firstKey, lastKey)
+        // require at least one node, so we catch and print the exception to show
+        // the contract explicitly.
         RedBlackTree<Integer, String> tree = new RedBlackTree<>();
 
         printSection("Empty tree");
@@ -61,6 +66,13 @@ public final class RedBlackTreeTester {
       Demonstrates insertion, update, replacement, and lookup operations.
      */
     private static void showBasicOperations() {
+        // Each put returns the *previous* value for that key, or null when the key
+        // is new. Notice that re-inserting key 20 returns "twenty" (the old value)
+        // without growing the tree; only the stored value changes.
+        // putIfAbsent on an existing non-null value is a no-op and returns the
+        // current value; on a new key it behaves like put and returns null.
+        // validateInvariants at the end confirms that all five red-black properties
+        // still hold after every insertion and update.
         RedBlackTree<Integer, String> tree = new RedBlackTree<>();
 
         printSection("Basic operations");
@@ -84,6 +96,11 @@ public final class RedBlackTreeTester {
       Demonstrates navigation helpers and deletion behavior.
      */
     private static void showDeletionAndNavigation() {
+        // We build an 11-node tree and then remove four nodes, including some whose
+        // removal triggers the deletion fix-up (restoreAfterDeletion). The navigation
+        // queries before and after deletion show how the ordered structure shifts.
+        // lowerKey / floorKey / ceilingKey / higherKey each traverse the tree in
+        // O(log n); they do not scan the whole key set.
         RedBlackTree<Integer, String> tree = new RedBlackTree<>();
         int[] keys = {20, 10, 30, 5, 15, 25, 35, 1, 6, 14, 16};
 
@@ -105,6 +122,11 @@ public final class RedBlackTreeTester {
       Demonstrates bulk loading, clearing, and rebuilding the tree.
      */
     private static void showBulkLoadAndClear() {
+        // putAll inserts entries one at a time through the same put path, so every
+        // insertion is individually balanced. After clear, the tree is reset to an
+        // empty sentinel-only state in O(1) with no node-by-node teardown needed.
+        // We then rebuild with a null value to show that null values are allowed
+        // while the tree still validates correctly.
         RedBlackTree<Integer, String> tree = new RedBlackTree<>();
         Map<Integer, String> entries = new LinkedHashMap<>();
 
@@ -132,6 +154,11 @@ public final class RedBlackTreeTester {
       Demonstrates custom comparator ordering with a non-Comparable key type.
      */
     private static void showComparatorOrdering() {
+        // CourseKey does not implement Comparable, so it cannot be used with the
+        // natural-ordering constructor. A Comparator supplied at construction time
+        // defines the ordering instead. The entries printed in order should appear
+        // sorted first by department (CS before MATH before PHYS) and then by
+        // catalog number within each department.
         Comparator<CourseKey> courseComparator =
             Comparator.comparing((CourseKey key) -> key.department)
                 .thenComparingInt(key -> key.catalogNumber);

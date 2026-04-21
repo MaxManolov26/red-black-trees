@@ -204,6 +204,11 @@ public final class RedBlackTree<K, V> {
     public RedBlackTree(Comparator<? super K> keyComparator) {
         this.keyComparator = keyComparator;
         sentinelLeaf = new Node(null, null, NodeColor.BLACK, null, null, null);
+        // The sentinel's three structural links all point back to itself.
+        // That means any traversal that walks off the end of a real node chain
+        // (leftChild, rightChild, or parentNode) lands on the sentinel rather
+        // than null. Fix-up loops can then read .color, .leftChild, etc. on the
+        // result without a null-check guard before each access.
         sentinelLeaf.leftChild = sentinelLeaf;
         sentinelLeaf.rightChild = sentinelLeaf;
         sentinelLeaf.parentNode = sentinelLeaf;
@@ -653,47 +658,67 @@ public final class RedBlackTree<K, V> {
       @param currentNode newly inserted node, or the node currently being fixed
      */
     private void restoreAfterInsertion(Node currentNode) {
+        // The loop runs only while there is a double-red violation: currentNode is red
+        // and so is its parent. A red root or a black parent ends the loop immediately.
         while (currentNode.parentNode.color == NodeColor.RED) {
             if (currentNode.parentNode == currentNode.parentNode.parentNode.leftChild) {
                 Node uncleNode = currentNode.parentNode.parentNode.rightChild;
-                // Case 1: the uncle is red, so recoloring fixes the local violation.
+                // Case 1: uncle is RED.
+                // The grandparent's two red children (parent + uncle) can absorb the
+                // violation by both turning BLACK. The grandparent then turns RED to
+                // keep every root-to-leaf black count the same. The double-red problem
+                // may now exist one level higher, so the loop continues at the grandparent.
                 if (uncleNode.color == NodeColor.RED) {
                     currentNode.parentNode.color = NodeColor.BLACK;
                     uncleNode.color = NodeColor.BLACK;
                     currentNode.parentNode.parentNode.color = NodeColor.RED;
                     currentNode = currentNode.parentNode.parentNode;
                 } else {
-                    // Case 2: turn an inner bend into a straight line first.
+                    // Case 2: uncle is BLACK and currentNode is an inner (zig-zag) grandchild.
+                    // A left rotation around the parent straightens the zig-zag into a
+                    // straight line so Case 3 can fix it. No recoloring here; the rotation
+                    // alone does not change any black count.
                     if (currentNode == currentNode.parentNode.rightChild) {
                         currentNode = currentNode.parentNode;
                         rotateLeft(currentNode);
                     }
-                    // Case 3: recolor and rotate to move the red link upward.
+                    // Case 3: uncle is BLACK and the chain is straight (outer grandchild).
+                    // The parent takes the grandparent's position via a right rotation and
+                    // receives the grandparent's BLACK color. The grandparent moves down and
+                    // becomes RED. Every root-to-leaf black count is restored, and no
+                    // double-red remains in this subtree, so the loop ends.
                     currentNode.parentNode.color = NodeColor.BLACK;
                     currentNode.parentNode.parentNode.color = NodeColor.RED;
                     rotateRight(currentNode.parentNode.parentNode);
                 }
             } else {
+                // Symmetric: parent is the grandparent's right child.
                 Node uncleNode = currentNode.parentNode.parentNode.leftChild;
-                // Mirror of case 1.
+                // Mirror of case 1: uncle is RED, so recolor both children BLACK,
+                // grandparent RED, and continue the loop at the grandparent.
                 if (uncleNode.color == NodeColor.RED) {
                     currentNode.parentNode.color = NodeColor.BLACK;
                     uncleNode.color = NodeColor.BLACK;
                     currentNode.parentNode.parentNode.color = NodeColor.RED;
                     currentNode = currentNode.parentNode.parentNode;
                 } else {
-                    // Mirror of case 2.
+                    // Mirror of case 2: currentNode is an inner (zig-zag) left grandchild;
+                    // right-rotate to straighten the chain, then fall into case 3.
                     if (currentNode == currentNode.parentNode.leftChild) {
                         currentNode = currentNode.parentNode;
                         rotateRight(currentNode);
                     }
-                    // Mirror of case 3.
+                    // Mirror of case 3: straight right-right chain, so recolor and left-rotate
+                    // to lift the parent up and push the grandparent down as a RED child.
                     currentNode.parentNode.color = NodeColor.BLACK;
                     currentNode.parentNode.parentNode.color = NodeColor.RED;
                     rotateLeft(currentNode.parentNode.parentNode);
                 }
             }
         }
+        // The root must always be BLACK. If the loop pushed a RED mark all the way to
+        // the top, this line absorbs it without changing any black count (the root is
+        // not on any path counted between two real nodes).
         rootNode.color = NodeColor.BLACK;
         rootNode.parentNode = sentinelLeaf;
     }
@@ -708,16 +733,29 @@ public final class RedBlackTree<K, V> {
         NodeColor removedNodeColor = nodeActuallyRemoved.color;
         Node fixupStartNode;
         if (nodeToRemove.leftChild == sentinelLeaf) {
+            // Node has at most a right child: splice it out by linking the right child
+            // directly to nodeToRemove's parent. fixupStartNode is the child that moves
+            // into the gap (may be the sentinel if the node was a leaf).
             fixupStartNode = nodeToRemove.rightChild;
             replaceSubtree(nodeToRemove, nodeToRemove.rightChild);
         } else if (nodeToRemove.rightChild == sentinelLeaf) {
+            // Node has only a left child: same idea, splice the left child into place.
             fixupStartNode = nodeToRemove.leftChild;
             replaceSubtree(nodeToRemove, nodeToRemove.leftChild);
         } else {
+            // Node has two children. We cannot remove it directly because it has two
+            // subtrees. Instead we find its in-order successor (the leftmost node in
+            // the right subtree), copy its key and value here, and physically remove
+            // the successor. The successor has no left child by definition, so it falls
+            // into one of the two cases above.
             nodeActuallyRemoved = minimumNode(nodeToRemove.rightChild);
             removedNodeColor = nodeActuallyRemoved.color;
             fixupStartNode = nodeActuallyRemoved.rightChild;
             if (nodeActuallyRemoved.parentNode == nodeToRemove) {
+                // The successor is nodeToRemove's direct right child; its right
+                // subtree already hangs in the right place, but the parent link of
+                // fixupStartNode (possibly the sentinel) still needs to point at the
+                // successor so the fix-up loop can walk upward correctly.
                 fixupStartNode.parentNode = nodeActuallyRemoved;
             } else {
                 replaceSubtree(nodeActuallyRemoved, nodeActuallyRemoved.rightChild);
@@ -727,8 +765,13 @@ public final class RedBlackTree<K, V> {
             replaceSubtree(nodeToRemove, nodeActuallyRemoved);
             nodeActuallyRemoved.leftChild = nodeToRemove.leftChild;
             nodeActuallyRemoved.leftChild.parentNode = nodeActuallyRemoved;
+            // The successor inherits nodeToRemove's color so the black count on paths
+            // through this position stays the same. The color we track for fix-up
+            // purposes is the successor's *original* color (already saved above).
             nodeActuallyRemoved.color = nodeToRemove.color;
         }
+        // A red node contributes nothing to black counts, so removing one never
+        // creates an imbalance. Only the removal of a black node requires repair.
         if (removedNodeColor == NodeColor.BLACK) {
             restoreAfterDeletion(fixupStartNode);
         }
@@ -741,17 +784,30 @@ public final class RedBlackTree<K, V> {
       @param currentNode node carrying the temporary black-height deficit
      */
     private void restoreAfterDeletion(Node currentNode) {
+        // currentNode carries a conceptual "extra black": it is one black short on
+        // every path that runs through it. The loop moves that deficit upward or
+        // resolves it with recoloring and rotation until the tree is balanced again.
+        // The loop ends when currentNode is RED (coloring it BLACK absorbs the deficit)
+        // or when it reaches the root (the root can simply be blackened).
         while (currentNode != rootNode && currentNode.color == NodeColor.BLACK) {
             if (currentNode == currentNode.parentNode.leftChild) {
                 Node siblingNode = currentNode.parentNode.rightChild;
-                // Case 1: convert a red sibling into a black sibling configuration.
+                // Case 1: sibling is RED.
+                // A red sibling means the parent is BLACK. We recolor the sibling BLACK,
+                // the parent RED, and rotate left. This does not yet fix the deficit, but
+                // it gives currentNode a new BLACK sibling so one of cases 2-4 can finish
+                // the repair.
                 if (siblingNode.color == NodeColor.RED) {
                     siblingNode.color = NodeColor.BLACK;
                     currentNode.parentNode.color = NodeColor.RED;
                     rotateLeft(currentNode.parentNode);
                     siblingNode = currentNode.parentNode.rightChild;
                 }
-                // Case 2: both sibling children are black, so push the deficit upward.
+                // Case 2: sibling is BLACK with two BLACK children.
+                // Neither of the sibling's subtrees has a spare black node to donate.
+                // Recoloring the sibling RED reduces its black count by 1, equalizing it
+                // with currentNode's deficient side. The deficit is now absorbed into the
+                // parent, so we move the loop pointer upward and continue there.
                 if (
                     siblingNode.leftChild.color == NodeColor.BLACK
                     && siblingNode.rightChild.color == NodeColor.BLACK
@@ -759,14 +815,23 @@ public final class RedBlackTree<K, V> {
                     siblingNode.color = NodeColor.RED;
                     currentNode = currentNode.parentNode;
                 } else {
-                    // Case 3: reshape so case 4 can finish the repair.
+                    // Case 3: sibling is BLACK, its far (right) child is BLACK, near (left) is RED.
+                    // We need the far child to be RED for Case 4. A right rotation around the
+                    // sibling, plus a recolor, repositions the RED child to the far side without
+                    // changing any black count, setting up Case 4 to finish the repair.
                     if (siblingNode.rightChild.color == NodeColor.BLACK) {
                         siblingNode.leftChild.color = NodeColor.BLACK;
                         siblingNode.color = NodeColor.RED;
                         rotateRight(siblingNode);
                         siblingNode = currentNode.parentNode.rightChild;
                     }
-                    // Case 4: recolor and rotate once to absorb the deficit.
+                    // Case 4: sibling is BLACK with a RED far (right) child.
+                    // A left rotation lifts the sibling to the parent's position. The sibling
+                    // takes the parent's color so the subtree root looks the same from above.
+                    // The parent moves down and becomes BLACK (adding a black node to the
+                    // deficient side). The far child also becomes BLACK (keeping the sibling's
+                    // side balanced). The deficit is fully absorbed, so currentNode is set
+                    // to root and the loop exits immediately.
                     siblingNode.color = currentNode.parentNode.color;
                     currentNode.parentNode.color = NodeColor.BLACK;
                     siblingNode.rightChild.color = NodeColor.BLACK;
@@ -774,15 +839,18 @@ public final class RedBlackTree<K, V> {
                     currentNode = rootNode;
                 }
             } else {
+                // Symmetric: currentNode is the right child; sibling is on the left.
                 Node siblingNode = currentNode.parentNode.leftChild;
-                // Mirror of case 1.
+                // Mirror of case 1: RED sibling, so recolor and right-rotate to get a BLACK
+                // sibling, then continue with cases 2-4.
                 if (siblingNode.color == NodeColor.RED) {
                     siblingNode.color = NodeColor.BLACK;
                     currentNode.parentNode.color = NodeColor.RED;
                     rotateRight(currentNode.parentNode);
                     siblingNode = currentNode.parentNode.leftChild;
                 }
-                // Mirror of case 2.
+                // Mirror of case 2: sibling and both its children are BLACK, so recolor
+                // the sibling RED and push the deficit to the parent.
                 if (
                     siblingNode.rightChild.color == NodeColor.BLACK
                     && siblingNode.leftChild.color == NodeColor.BLACK
@@ -790,14 +858,16 @@ public final class RedBlackTree<K, V> {
                     siblingNode.color = NodeColor.RED;
                     currentNode = currentNode.parentNode;
                 } else {
-                    // Mirror of case 3.
+                    // Mirror of case 3: sibling's far (left) child is BLACK, near (right) is RED;
+                    // left-rotate the sibling to move the RED child to the far side.
                     if (siblingNode.leftChild.color == NodeColor.BLACK) {
                         siblingNode.rightChild.color = NodeColor.BLACK;
                         siblingNode.color = NodeColor.RED;
                         rotateLeft(siblingNode);
                         siblingNode = currentNode.parentNode.leftChild;
                     }
-                    // Mirror of case 4.
+                    // Mirror of case 4: sibling's far (left) child is RED, so right-rotate to lift
+                    // the sibling, absorb the deficit, and exit the loop.
                     siblingNode.color = currentNode.parentNode.color;
                     currentNode.parentNode.color = NodeColor.BLACK;
                     siblingNode.leftChild.color = NodeColor.BLACK;
@@ -806,6 +876,9 @@ public final class RedBlackTree<K, V> {
                 }
             }
         }
+        // If the loop ended because currentNode is RED, coloring it BLACK absorbs the
+        // one-black deficit without changing any other path count. If the loop ended
+        // because currentNode reached the root, blackening the root is always safe.
         currentNode.color = NodeColor.BLACK;
         rootNode.parentNode = sentinelLeaf;
     }
@@ -816,6 +889,8 @@ public final class RedBlackTree<K, V> {
       @param pivotNode root of the subtree being rotated
      */
     private void rotateLeft(Node pivotNode) {
+        // promoted's left subtree was ordered between pivot and promoted,
+        // so it becomes pivot's right child. In-order key sequence is unchanged.
         Node promotedNode = pivotNode.rightChild;
         pivotNode.rightChild = promotedNode.leftChild;
         if (promotedNode.leftChild != sentinelLeaf) {
@@ -838,6 +913,9 @@ public final class RedBlackTree<K, V> {
       @param pivotNode root of the subtree being rotated
      */
     private void rotateRight(Node pivotNode) {
+        // Mirror image of rotateLeft. promoted's right subtree was ordered between
+        // promoted and pivot, so it becomes pivot's left child. In-order key sequence
+        // is unchanged.
         Node promotedNode = pivotNode.leftChild;
         pivotNode.leftChild = promotedNode.rightChild;
         if (promotedNode.rightChild != sentinelLeaf) {
